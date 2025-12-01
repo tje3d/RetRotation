@@ -1,98 +1,115 @@
-# RetRotation (WotLK 3.3.5a)
+# ⚔️ RetRotation (WotLK 3.3.5a)
 
-**RetRotation** is a lightweight, standalone addon for **World of Warcraft: Wrath of the Lich King (3.3.5a)**. It provides a dynamic priority queue for Retribution Paladins, calculating the optimal next spell to cast based on cooldowns, current buffs, and target health.
+![RetRotation Preview](62fa8889c843c08b0ba865d8.gif)
 
-This addon is designed to replicate the functionality of complex "Clash" or "Faceroll" WeakAuras, but with significantly better performance and zero external dependencies.
+**RetRotation** is a lightweight, standalone addon for **World of Warcraft: Wrath of the Lich King (3.3.5a)**. It supercharges your Retribution Paladin gameplay by calculating the optimal spell to cast next based on cooldowns, buffs, and target health.
 
-## Features
+Think of it as a high-performance replacement for "Clash" or "Faceroll" WeakAuras, but with **zero dependencies** and optimized code! 🚀
 
-*   **Smart Priority System:** Uses the standard 3.3.5a theorycrafting priority list (Clash system).
-*   **Context Aware:**
-    *   **Single Target:** Default rotation.
-    *   **AoE Mode:** Automatically switches priority when **Seal of Command** is active.
-    *   **Execute Phase:** Automatically prioritizes **Hammer of Wrath** when the target is below 20% HP.
-    *   **Undead/Demon:** Adjusts priority for Exorcism/Holy Wrath against specific creature types.
-*   **Spec Detection:** Automatically hides the frame if you switch to Holy or Protection talents.
-*   **Dual Spec Support:** Instantly updates when swapping between Dual Specs.
-*   **Visual Cues:**
+---
+
+## ✨ Features
+
+*   🧠 **Smart Priority System:** Implements the standard 3.3.5a theorycrafting priority list (Clash system).
+*   🔄 **Context Aware:**
+    *   🎯 **Single Target:** Standard rotation optimization.
+    *   💥 **AoE Mode:** Automatically switches priority when **Seal of Command** is active.
+    *   ☠️ **Execute Phase:** Prioritizes **Hammer of Wrath** when target is < 20% HP.
+    *   🧟 **Undead/Demon:** Adjusts Exorcism/Holy Wrath priority for specific enemy types.
+*   🛡️ **Spec Detection:** Auto-hides if you switch to Holy or Protection.
+*   ⚡ **Dual Spec Support:** Updates instantly when swapping specs.
+*   👀 **Visual Cues:**
     *   **Glow:** The optimal spell (leftmost) glows when ready.
-    *   **OOM Indicator:** Icons turn blueish if you lack the mana to cast them.
-    *   **Cooldowns:** Displays the native cooldown spiral on icons.
-*   **Performance:** Highly optimized state-caching prevents UI flickering and reduces CPU usage compared to WeakAuras.
+    *   **OOM Indicator:** Icons turn blueish if you lack mana.
+    *   **Cooldowns:** Native cooldown spirals.
+*   🚀 **High Performance:** State-caching prevents UI flickering and keeps CPU usage low.
 
-## Installation
+---
 
-1.  Download the files or create them manually.
-2.  Navigate to your WoW installation folder:
+## 📦 Installation
+
+1.  Download the files.
+2.  Navigate to your WoW AddOns folder:
     `\World of Warcraft\Interface\AddOns\`
 3.  Create a folder named **`RetRotation`**.
-4.  Ensure the folder contains these two files:
+4.  Place the following files inside:
     *   `RetRotation.toc`
     *   `RetRotation.lua`
-5.  Launch the game. The addon will appear automatically when you log in as a Retribution Paladin.
+    *   `62fa8889c843c08b0ba865d8.gif` (Optional, for README)
+5.  Launch WoW! The addon appears automatically when you log in as a Retribution Paladin.
 
-## Usage
+---
 
-*   **Positioning:** The frame is unlocked by default. **Left-click and drag** the background area of the icons to move it to your desired location.
-*   **Reading the Queue:**
-    *   The **Leftmost Icon** (largest/brightest) is the spell you should cast *next*.
-    *   The icons to the right show upcoming spells in the queue.
-    *   If the first icon is glowing, the spell is ready to cast immediately.
+## 🎮 Usage
 
-## The Rotation Logic
+*   **Move It:** The frame is unlocked by default. **Left-click and drag** the background to position it.
+*   **Read It:**
+    *   **Leftmost Icon:** The spell you should cast **NEXT**.
+    *   **Right Icons:** Upcoming spells.
+    *   **Glowing Border:** Spell is ready to cast immediately!
 
-The addon uses the following priority logic (Clash system), sorted by cooldown readiness:
+---
 
-**Single Target:**
-1.  Hammer of Wrath (if < 20% HP)
-2.  Judgement
-3.  Divine Storm
-4.  Crusader Strike
-5.  Consecration
-6.  Exorcism
-7.  Holy Wrath
+## ⚔️ The Rotation Logic
 
-**AoE Mode (Active when Seal of Command is up):**
-1.  Hammer of Wrath (if < 20% HP)
-2.  Judgement
-3.  Divine Storm
-4.  Consecration
-5.  Crusader Strike
-6.  Holy Wrath
-7.  Exorcism
+We use the proven **Clash System** priority list:
 
-## Configuration
+### 🎯 Single Target
+1.  🔨 **Hammer of Wrath** (if < 20% HP)
+2.  ⚖️ **Judgement**
+3.  🌪️ **Divine Storm**
+4.  ⚔️ **Crusader Strike**
+5.  🔥 **Consecration**
+6.  👻 **Exorcism**
+7.  🙏 **Holy Wrath**
 
-There is no in-game GUI menu to keep the addon lightweight. However, you can easily configure the visuals by opening `RetRotation.lua` in any text editor (like Notepad) and changing the values at the very top:
+### 💥 AoE Mode
+*(Active when Seal of Command is up)*
+1.  🔨 **Hammer of Wrath** (if < 20% HP)
+2.  ⚖️ **Judgement**
+3.  🌪️ **Divine Storm**
+4.  🔥 **Consecration**
+5.  ⚔️ **Crusader Strike**
+6.  🙏 **Holy Wrath**
+7.  👻 **Exorcism**
+
+---
+
+## ⚙️ Configuration
+
+No bloatware GUI here! To configure visuals, simply edit the top of `RetRotation.lua` in any text editor (like Notepad):
 
 ```lua
 -- Configuration
-local MAX_ICONS = 5          -- Number of spells to predict in the future
-local ICON_SIZE = 40         -- Pixel size of the icons
+local MAX_ICONS = 5          -- Number of spells to predict
+local ICON_SIZE = 40         -- Pixel size of icons
 local SPACING = 5            -- Space between icons
-local GLOW_NEXT = true       -- Set to false to disable the glowing border
-local SCALE = 1.0            -- Scale of the entire frame (e.g., 0.8 for smaller, 1.2 for larger)
+local GLOW_NEXT = true       -- Toggle glowing border
+local SCALE = 1.0            -- Frame scale (e.g., 1.2 for bigger)
 ```
 
-*Save the file and type `/reload` in-game to see changes.*
+*Save and type `/reload` in-game to apply changes.*
 
-## Troubleshooting
+---
 
-**Q: The frame is not showing up.**
+## ❓ Troubleshooting
+
+**Q: The frame isn't showing up!**
 *   Are you a Paladin?
-*   Do you have more talent points spent in the **Retribution** tree than in Holy or Prot?
+*   Are you Retribution spec? (More points in Ret tree than others)
 *   Are you alive and not in a vehicle?
-*   *Note: If you are low level and have 0 talent points spent, the addon may not show.*
 
-**Q: The icons are blinking/flickering.**
-*   Update to the latest version provided. The code includes state-caching to prevent redraws unless the spell state actually changes.
+**Q: Icons are flickering?**
+*   Update to the latest version. Our state-caching fixes this!
 
-**Q: It's not switching to AoE rotation.**
-*   Ensure you have **Seal of Command** active. The addon uses this specific buff to trigger AoE logic.
+**Q: AoE rotation isn't working?**
+*   Make sure **Seal of Command** is active.
 
-**Q: I get a "Dependency Missing" error.**
-*   This is a standalone addon. It does **not** require WeakAuras, Ace3, or any other libraries. Ensure the `.toc` file is named exactly `RetRotation.toc`.
+**Q: "Dependency Missing" error?**
+*   This addon is standalone! You don't need WeakAuras, Ace3, or any other libraries. Ensure the folder is named `RetRotation`.
 
-## License
+---
 
-This project is open-source. Feel free to modify and distribute it for the WotLK community.
+## 📜 License
+
+Open-source for the WotLK community. Feel free to modify and share! ❤️
