@@ -297,6 +297,18 @@ mainFrame:SetScript("OnEvent", function(self, event)
     end
 end)
 
+local periodicCheck = CreateFrame("Frame")
+periodicCheck:SetScript("OnUpdate", function(self, elapsed)
+    self.elapsed = (self.elapsed or 0) + elapsed
+    if self.elapsed > 2 then -- Check every 2 seconds
+        self.elapsed = 0
+        UpdateFrameVisibility()
+    end
+end)
+
 mainFrame:RegisterEvent("PLAYER_LOGIN")
 mainFrame:RegisterEvent("LEARNED_SPELL_IN_TAB")
 mainFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+mainFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+mainFrame:RegisterEvent("CHARACTER_POINTS_CHANGED")
+mainFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
