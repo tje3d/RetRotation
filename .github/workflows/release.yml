@@ -1,0 +1,41 @@
+name: Build and Release WoW Addon
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Package Structure
+        run: |
+          mkdir -p RetRotation
+          cp RetRotation.lua RetRotation/
+          cp RetRotation.toc RetRotation/
+          # Check if README exists and include it if so, but optional
+          if [ -f README.md ]; then cp README.md RetRotation/; fi
+
+      - name: Create Zip Archive
+        run: |
+          zip -r RetRotation.zip RetRotation
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          files: RetRotation.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
