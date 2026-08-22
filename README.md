@@ -18,6 +18,7 @@ Think of it as a high-performance replacement for "Clash" or "Faceroll" WeakAura
     *   🧟 **Undead/Demon:** Adjusts Exorcism/Holy Wrath priority for specific enemy types.
 *   🛡️ **Spec Detection:** Auto-hides if you switch to Holy or Protection.
 *   ⚡ **Dual Spec Support:** Updates instantly when swapping specs.
+*   🔔 **Seal & Aura Reminder:** Blinking icon + warning sound when your Seal or Aura drops off.
 *   👀 **Visual Cues:**
     *   **Glow:** The optimal spell (leftmost) glows when ready.
     *   **OOM Indicator:** Icons turn blueish if you lack mana.
@@ -47,6 +48,28 @@ Think of it as a high-performance replacement for "Clash" or "Faceroll" WeakAura
     *   **Leftmost Icon:** The spell you should cast **NEXT**.
     *   **Right Icons:** Upcoming spells.
     *   **Glowing Border:** Spell is ready to cast immediately!
+*   **Seal & Aura Reminder:** A blinking icon appears above the bar when something important is missing:
+    *   🤐 **"NO SEAL"** – you have no Seal active. Cast one!
+    *   💨 **"NO AURA"** – no Paladin aura is up (or, in `CRUSADER` mode, Crusader Aura specifically is missing).
+    *   A warning sound plays when a Seal/Aura drops (once per drop, no spam).
+
+---
+
+## 🔔 Reminder Configuration
+
+Edit the top of `RetRotation.lua`:
+
+```lua
+-- Reminder settings (Seal & Aura watch)
+local REMIND_SEAL   = true   -- Warn when no Seal is active
+local REMIND_AURA   = true   -- Warn when the Aura requirement is not met
+local AURA_MODE     = "ANY"  -- "ANY"      = any Paladin aura counts as OK
+                             -- "CRUSADER" = only Crusader Aura counts as OK
+local PULSE_MISSING = true   -- Pulse the icon while something is missing
+local PLAY_SOUND    = true   -- Play a warning sound when a Seal/Aura drops
+```
+
+With `AURA_MODE = "ANY"` any aura (Devotion, Retribution, Concentration, Sanctity, resistances) silences the reminder; set it to `"CRUSADER"` if you want an alert whenever Crusader Aura specifically is missing.
 
 ---
 

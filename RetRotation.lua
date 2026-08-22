@@ -5,6 +5,14 @@ local SPACING = 5            -- Space between icons
 local GLOW_NEXT = true       -- Highlight the first icon
 local SCALE = 1.0            -- Overall scale
 
+-- Reminder settings (Seal & Aura watch)
+local REMIND_SEAL   = true   -- Warn when no Seal is active
+local REMIND_AURA   = true   -- Warn when the Aura requirement is not met
+local AURA_MODE     = "ANY"  -- "ANY"      = any Paladin aura counts as OK
+                             -- "CRUSADER" = only Crusader Aura counts as OK
+local PULSE_MISSING = true   -- Pulse the icon while something is missing
+local PLAY_SOUND    = true   -- Play a warning sound when a Seal/Aura drops
+
 -- Spell IDs (Used to look up names and textures)
 local RAW_SPELLS = {
     CS      = 35395, -- Crusader Strike
@@ -19,6 +27,30 @@ local RAW_SPELLS = {
 local BUFFS = {
     ART_OF_WAR = 59578,
     SEAL_CMD   = 20375,
+}
+
+-- Seal & Aura watch
+-- WotLK Seals: Command, Vengeance, Righteousness, Wisdom, Light, Justice
+local SEALS = {
+    20375, -- Seal of Command
+    53736, -- Seal of Vengeance (Horde) / 31801 Ally
+    31801, -- Seal of Vengeance (Alliance)
+    20165, -- Seal of Justice
+    21084, -- Seal of Righteousness
+    20164, -- Seal of Light
+    20166, -- Seal of Wisdom
+}
+-- Auras: Crusader is the raid favourite; the rest count when mode is "ANY"
+-- NOTE: UnitAura matches by NAME, so rank-1 IDs cover every rank of the aura.
+local AURA_CRUSADER = 32223 -- Crusader Aura (single rank)
+local ANY_AURAS = {
+    465,    -- Devotion Aura
+    7294,   -- Retribution Aura
+    19746,  -- Concentration Aura
+    20218,  -- Sanctity Aura
+    19891,  -- Fire Resistance Aura
+    19876,  -- Shadow Resistance Aura
+    19877,  -- Frost Resistance Aura
 }
 
 -- Frame Setup
@@ -76,6 +108,67 @@ for i = 1, MAX_ICONS do
     icons[i] = btn
 end
 
+--------------------------------------------------------------------
+-- Seal & Aura Reminder
+--------------------------------------------------------------------
+local REMIND_SIZE = ICON_SIZE  -- Reminder icon size
+
+-- Reminder frame sits above the rotation bar, same width
+local remindFrame = CreateFrame("Frame", "RetRotationReminderFrame", UIParent)
+remindFrame:SetSize(mainFrame:GetWidth(), REMIND_SIZE)
+remindFrame:SetPoint("BOTTOM", mainFrame, "TOP", 0, SPACING)
+remindFrame:SetScale(SCALE)
+remindFrame:SetMovable(true)
+remindFrame:EnableMouse(true)
+remindFrame:RegisterForDrag("LeftButton")
+remindFrame:SetScript("OnDragStart", remindFrame.StartMoving)
+remindFrame:SetScript("OnDragStop", remindFrame.StopMovingOrSizing)
+remindFrame:SetClampedToScreen(true)
+
+-- Seal slot (left) and Aura slot (right), centered as a pair
+local function CreateReminderSlot(name, parent)
+    local btn = CreateFrame("CheckButton", name, parent, "ActionButtonTemplate")
+    btn:SetSize(REMIND_SIZE, REMIND_SIZE)
+    btn:EnableMouse(false)
+
+    -- Manually map XML children
+    btn.icon = _G[name .. "Icon"]
+    btn.cooldown = _G[name .. "Cooldown"]
+
+    local normal = _G[name .. "NormalTexture"]
+    if normal then
+        normal:SetWidth(REMIND_SIZE * 1.6)
+        normal:SetHeight(REMIND_SIZE * 1.6)
+    end
+
+    -- "MISSING" overlay text (e.g. "NO SEAL"), anchored inside the icon
+    local label = btn:CreateFontString(nil, "OVERLAY", "GameFontRedSmall")
+    label:SetPoint("BOTTOM", btn, "BOTTOM", 0, 2)
+    btn.label = label
+    return btn
+end
+
+local sealSlot = CreateReminderSlot("RetRotationSealSlot", remindFrame)
+local auraSlot = CreateReminderSlot("RetRotationAuraSlot", remindFrame)
+sealSlot:SetPoint("CENTER", remindFrame, "CENTER", -(REMIND_SIZE / 2 + SPACING / 2), 0)
+auraSlot:SetPoint("CENTER", remindFrame, "CENTER", (REMIND_SIZE / 2 + SPACING / 2), 0)
+
+-- Icon textures shown while something is missing
+-- (resolved via GetSpellInfo at display time; fallback paths hardcoded above)
+sealSlot.textureID = 21084 -- Seal of Righteousness art stands in for "any seal"
+auraSlot.textureID = AURA_CRUSADER
+
+sealSlot.labelText = "NO SEAL"
+auraSlot.labelText = AURA_MODE == "CRUSADER" and "NO CRUSADER" or "NO AURA"
+
+sealSlot.lastShown = nil
+sealSlot.lastPulse = nil
+auraSlot.lastShown = nil
+auraSlot.lastPulse = nil
+
+-- Hide by default until visibility is confirmed
+remindFrame:Hide()
+
 -- Helper: Get Localized Spell Name
 local SPELL_MAP = {}
 local function InitSpells()
@@ -112,6 +205,7 @@ local function UpdateFrameVisibility()
         mainFrame:Show()
     else
         mainFrame:Hide()
+        remindFrame:Hide() -- OnUpdate won't fire while mainFrame is hidden
     end
 end
 
@@ -127,6 +221,94 @@ local function IsTargetDemonOrUndead()
     if not UnitExists("target") then return false end
     local t = UnitCreatureType("target")
     return t == "Demon" or t == "Undead"
+end
+
+--------------------------------------------------------------------
+-- Seal & Aura Reminder Logic
+--------------------------------------------------------------------
+-- True if the player currently has any of the given spell IDs active
+local function HasAnyOf(unit, ids)
+    for i = 1, #ids do
+        if HasBuff(unit, ids[i]) then return true end
+    end
+    return false
+end
+
+-- Returns sealOK, auraOK for the current player state
+local function GetReminderState()
+    local hasSeal = HasAnyOf("player", SEALS)
+    local hasAura = false
+    if AURA_MODE == "CRUSADER" then
+        hasAura = HasBuff("player", AURA_CRUSADER)
+    else
+        hasAura = HasBuff("player", AURA_CRUSADER) or HasAnyOf("player", ANY_AURAS)
+    end
+    return hasSeal, hasAura
+end
+
+-- Show/hide + pulse a reminder slot; returns true when it is visible this tick
+local function UpdateReminderSlot(slot, missing)
+    local show = missing == true
+
+    if slot.lastShown ~= show then
+        if show then
+            slot.label:SetText(slot.labelText)
+            local _, _, tex = GetSpellInfo(slot.textureID)
+            slot.icon:SetTexture(tex or "Interface\\Icons\\Spell_Holy_RighteousnessAura")
+            slot:Show()
+        else
+            slot:Hide()
+        end
+        slot.lastShown = show
+    end
+
+    -- Pulse alpha while visible (blink between 1.0 and 0.5)
+    if show then
+        local pulse = true
+        if PULSE_MISSING then
+            pulse = math.floor(GetTime() * 2) % 2 == 0
+        end
+        local targetAlpha = pulse and 1 or 0.5
+        if slot.lastPulse ~= pulse then
+            slot:SetAlpha(targetAlpha)
+            slot.lastPulse = pulse
+        end
+    end
+    return show
+end
+
+-- True while at least one reminder was visible on the previous tick
+local remindWasAlerting = false
+
+local function UpdateReminders()
+    if not IsRetributionPaladin() then
+        remindFrame:Hide()
+        remindWasAlerting = false
+        return
+    end
+
+    local sealOK, auraOK = GetReminderState()
+    local sealMissing = REMIND_SEAL and not sealOK
+    local auraMissing = REMIND_AURA and not auraOK
+
+    -- Play warning sound when going from "all good" -> "something missing"
+    -- (WotLK 3.3.5a: PlaySound takes just the sound ID)
+    local alerting = (sealMissing == true) or (auraMissing == true)
+    if PLAY_SOUND and alerting and not remindWasAlerting then
+        PlaySound("RaidWarning")
+    end
+    remindWasAlerting = alerting
+
+    local anyVisible = UpdateReminderSlot(sealSlot, sealMissing)
+    if UpdateReminderSlot(auraSlot, auraMissing) then
+        anyVisible = true
+    end
+
+    if anyVisible then
+        if not remindFrame:IsShown() then remindFrame:Show() end
+    else
+        if remindFrame:IsShown() then remindFrame:Hide() end
+    end
 end
 
 -- Helper: Get Priority List based on State
@@ -171,6 +353,9 @@ mainFrame:SetScript("OnUpdate", function(self, elapsed)
     lastUpdate = 0
 
     if not SPELL_MAP.CS then InitSpells() end
+
+    -- Seal & Aura reminder check
+    UpdateReminders()
 
     -- Clear table for new frame
     for k in pairs(spellData) do spellData[k] = nil end
@@ -294,6 +479,9 @@ mainFrame:SetScript("OnEvent", function(self, event)
     if event == "PLAYER_LOGIN" or event == "LEARNED_SPELL_IN_TAB" or event == "ACTIVE_TALENT_GROUP_CHANGED" then
         InitSpells()
         UpdateFrameVisibility()
+    elseif event == "UNIT_AURA" then
+        -- Buff/debuff change: refresh Seal/Aura reminder immediately
+        UpdateReminders()
     end
 end)
 
@@ -312,3 +500,4 @@ mainFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
 mainFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 mainFrame:RegisterEvent("CHARACTER_POINTS_CHANGED")
 mainFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+mainFrame:RegisterEvent("UNIT_AURA")
