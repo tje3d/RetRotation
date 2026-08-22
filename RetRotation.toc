@@ -2,7 +2,7 @@
 ## Title: Ret Rotation (WotLK)
 ## Notes: Priority Queue rotation helper for Retribution Paladins.
 ## Author: Custom
-## Version: 1.1
+## Version: 1.2
 ## X-Category: Paladin
 
 RetRotation.lua
