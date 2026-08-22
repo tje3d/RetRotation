@@ -226,22 +226,52 @@ end
 --------------------------------------------------------------------
 -- Seal & Aura Reminder Logic
 --------------------------------------------------------------------
--- True if the player currently has any of the given spell IDs active
-local function HasAnyOf(unit, ids)
-    for i = 1, #ids do
-        if HasBuff(unit, ids[i]) then return true end
+-- Seals are personal buffs: only the player themself can ever carry a
+-- Seal, so a plain name check is enough for the Seal slot (no caster
+-- filter needed).
+local function HasSeal(name)
+    return UnitAura("player", name) ~= nil
+end
+
+-- Auras can be cast on us by other paladins in the group, so only
+-- SELF-CAST auras satisfy the Aura slot. WotLK UnitAura supports
+-- chained filters ("HELPFUL PLAYER"), returning only helpful auras
+-- that the player cast themself.
+local function HasPlayerAura(name)
+    if not name then return false end
+    for i = 1, 40 do
+        local n = UnitAura("player", i, "HELPFUL PLAYER")
+        if not n then break end
+        if n == name then return true end
     end
     return false
 end
 
 -- Returns sealOK, auraOK for the current player state
 local function GetReminderState()
-    local hasSeal = HasAnyOf("player", SEALS)
+    local hasSeal = false
+    for i = 1, #SEALS do
+        local n = GetSpellInfo(SEALS[i])
+        if n and HasSeal(n) then
+            hasSeal = true
+            break
+        end
+    end
+
     local hasAura = false
     if AURA_MODE == "CRUSADER" then
-        hasAura = HasBuff("player", AURA_CRUSADER)
+        hasAura = HasPlayerAura(GetSpellInfo(AURA_CRUSADER))
     else
-        hasAura = HasBuff("player", AURA_CRUSADER) or HasAnyOf("player", ANY_AURAS)
+        for i = 1, #ANY_AURAS do
+            local n = GetSpellInfo(ANY_AURAS[i])
+            if n and HasPlayerAura(n) then
+                hasAura = true
+                break
+            end
+        end
+        if not hasAura then
+            hasAura = HasPlayerAura(GetSpellInfo(AURA_CRUSADER))
+        end
     end
     return hasSeal, hasAura
 end
