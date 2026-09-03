@@ -15,7 +15,6 @@ Think of it as a high-performance replacement for "Clash" or "Faceroll" WeakAura
     *   🎯 **Single Target:** Standard rotation optimization.
     *   💥 **AoE Mode:** Automatically switches priority when **Seal of Command** is active.
     *   ☠️ **Execute Phase:** Prioritizes **Hammer of Wrath** when target is < 20% HP.
-    *   🧟 **Undead/Demon:** Adjusts Exorcism/Holy Wrath priority for specific enemy types.
 *   🛡️ **Spec Detection:** Auto-hides if you switch to Holy or Protection.
 *   ⚡ **Dual Spec Support:** Updates instantly when swapping specs.
 *   🔔 **Seal & Aura Reminder:** Blinking icon + warning sound when your Seal or Aura drops off.

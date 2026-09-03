@@ -54,7 +54,6 @@ local ANY_AURAS = {
 }
 
 -- Frame Setup
-local addonName, ns = ...
 local mainFrame = CreateFrame("Frame", "RetRotationFrame", UIParent)
 mainFrame:SetSize((ICON_SIZE * MAX_ICONS) + (SPACING * (MAX_ICONS - 1)), ICON_SIZE)
 mainFrame:SetPoint("CENTER", UIParent, "CENTER", 0, -150)
@@ -216,13 +215,6 @@ local function HasBuff(unit, spellID)
     return UnitAura(unit, name) ~= nil
 end
 
--- Helper: Check Target Type
-local function IsTargetDemonOrUndead()
-    if not UnitExists("target") then return false end
-    local t = UnitCreatureType("target")
-    return t == "Demon" or t == "Undead"
-end
-
 --------------------------------------------------------------------
 -- Seal & Aura Reminder Logic
 --------------------------------------------------------------------
@@ -342,34 +334,16 @@ local function UpdateReminders()
 end
 
 -- Helper: Get Priority List based on State
+-- Hammer of Wrath heads the list in both modes; the main loop below
+-- skips it unless the target is in execute range (<20% HP).
 local function GetCurrentPriority()
-    local isAoE = HasBuff("player", BUFFS.SEAL_CMD)
-    local isExecute = UnitCanAttack("player", "target") and (UnitHealth("target")/UnitHealthMax("target") <= 0.2)
-    local isDemon = IsTargetDemonOrUndead()
-
-    local prio = {}
-    local function Get(key) return SPELL_MAP[key] end
-    
-    if not SPELL_MAP.CS then return {} end
-
-    if isAoE then
-        if isExecute then
-            prio = {Get("HOW"), Get("JUDGE"), Get("DS"), Get("CONS"), Get("CS"), Get("HW"), Get("EXO")}
-        elseif isDemon then
-            prio = {Get("JUDGE"), Get("DS"), Get("CONS"), Get("CS"), Get("HW"), Get("EXO")}
-        else
-            prio = {Get("JUDGE"), Get("DS"), Get("CONS"), Get("CS"), Get("HW"), Get("EXO")}
-        end
-    else
-        if isExecute then
-            prio = {Get("HOW"), Get("JUDGE"), Get("DS"), Get("CS"), Get("CONS"), Get("EXO"), Get("HW")}
-        elseif isDemon then
-            prio = {Get("JUDGE"), Get("DS"), Get("CS"), Get("CONS"), Get("EXO"), Get("HW")}
-        else
-            prio = {Get("JUDGE"), Get("DS"), Get("CS"), Get("CONS"), Get("EXO"), Get("HW")}
-        end
+    local M = SPELL_MAP
+    if HasBuff("player", BUFFS.SEAL_CMD) then
+        -- AoE (Seal of Command up)
+        return { M.HOW, M.JUDGE, M.DS, M.CONS, M.CS, M.HW, M.EXO }
     end
-    return prio
+    -- Single target
+    return { M.HOW, M.JUDGE, M.DS, M.CS, M.CONS, M.EXO, M.HW }
 end
 
 -- Reuse table to reduce garbage collection
@@ -527,7 +501,4 @@ end)
 mainFrame:RegisterEvent("PLAYER_LOGIN")
 mainFrame:RegisterEvent("LEARNED_SPELL_IN_TAB")
 mainFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
-mainFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-mainFrame:RegisterEvent("CHARACTER_POINTS_CHANGED")
-mainFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 mainFrame:RegisterEvent("UNIT_AURA")
