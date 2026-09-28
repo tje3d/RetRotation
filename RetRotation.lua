@@ -1,3 +1,14 @@
+--------------------------------------------------------------------
+-- Class gate: Paladins only
+--------------------------------------------------------------------
+-- The 3.3.5a client has no class-conditional loading in the .toc, so the
+-- gate lives here: the whole file exits immediately for every non-Paladin
+-- (no frames, no events, no OnUpdate, no CPU cost). The `return` sits inside
+-- the if-block, so it is a valid last statement and aborts the whole chunk.
+if select(2, UnitClass("player")) ~= "PALADIN" then
+    return
+end
+
 -- Configuration
 local MAX_ICONS = 5          -- How many spells to show in the queue
 local ICON_SIZE = 40         -- Size of the icons
@@ -74,7 +85,7 @@ mainFrame:SetBackdrop({
 })
 mainFrame:SetBackdropColor(0, 0, 0, 0.5)
 
--- Hide by default until we verify class/spec
+-- Hide by default until we verify the player's class
 mainFrame:Hide()
 
 -- Create Icon Pool
@@ -179,28 +190,17 @@ local function InitSpells()
     end
 end
 
--- Helper: Check if player is Retribution Paladin
-local function IsRetributionPaladin()
+-- Helper: Check if player is a Paladin (any spec: Holy, Protection, Retribution)
+-- The file-level gate above already guarantees this at load time; this is a
+-- cheap runtime sanity check (e.g. after a /reload race or a login screen swap).
+local function IsPaladin()
     local _, class = UnitClass("player")
-    if class ~= "PALADIN" then
-        return false
-    end
-    
-    -- Check for Retribution talents by checking talent points in Ret tree
-    -- In WotLK, talent tree 3 is Retribution for Paladins
-    local _, _, pointsSpent = GetTalentTabInfo(3)
-    
-    -- Consider it Ret spec if at least 31 points in Ret tree
-    if pointsSpent and pointsSpent >= 31 then
-        return true
-    end
-    
-    return false
+    return class == "PALADIN"
 end
 
 -- Helper: Update Frame Visibility
 local function UpdateFrameVisibility()
-    if IsRetributionPaladin() then
+    if IsPaladin() then
         mainFrame:Show()
     else
         mainFrame:Hide()
@@ -303,7 +303,7 @@ end
 local remindWasAlerting = false
 
 local function UpdateReminders()
-    if not IsRetributionPaladin() then
+    if not IsPaladin() then
         remindFrame:Hide()
         remindWasAlerting = false
         return

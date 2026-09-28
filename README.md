@@ -15,8 +15,8 @@ Think of it as a high-performance replacement for "Clash" or "Faceroll" WeakAura
     *   🎯 **Single Target:** Standard rotation optimization.
     *   💥 **AoE Mode:** Automatically switches priority when **Seal of Command** is active.
     *   ☠️ **Execute Phase:** Prioritizes **Hammer of Wrath** when target is < 20% HP.
-*   🛡️ **Spec Detection:** Auto-hides if you switch to Holy or Protection.
-*   ⚡ **Dual Spec Support:** Updates instantly when swapping specs.
+*   🛡️ **Paladin Only:** Loads **only** for Paladin characters — for any other class the addon exits before creating a single frame (no UI, no CPU cost).
+*   ⚡ **Any Spec, Instant:** Works for Holy, Protection and Retribution. No talent-point requirement, nothing to configure after switching specs.
 *   🔔 **Seal & Aura Reminder:** Blinking icon + warning sound when your Seal or Aura drops off.
 *   👀 **Visual Cues:**
     *   **Glow:** The optimal spell (leftmost) glows when ready.
@@ -36,7 +36,7 @@ Think of it as a high-performance replacement for "Clash" or "Faceroll" WeakAura
     *   `RetRotation.toc`
     *   `RetRotation.lua`
     *   `62fa8889c843c08b0ba865d8.gif` (Optional, for README)
-5.  Launch WoW! The addon appears automatically when you log in as a Retribution Paladin.
+5.  Launch WoW! The addon appears automatically when you log in on a **Paladin**.
 
 ---
 
@@ -112,13 +112,33 @@ local SCALE = 1.0            -- Frame scale (e.g., 1.2 for bigger)
 
 *Save and type `/reload` in-game to apply changes.*
 
+### ⚙️ Class Loading
+
+The `.toc` declares `## X-Class: PALADIN`, but the 3.3.5a client ignores that
+key — class-conditional loading is not a client feature in this client version.
+The real gate is the first block of `RetRotation.lua`:
+
+```lua
+if select(2, UnitClass("player")) ~= "PALADIN" then
+    return
+end
+```
+
+Everything below that line — frames, icons, events, the `OnUpdate` loop — never
+runs for a non-Paladin, so other classes pay no CPU or memory cost for having
+the addon enabled. Any Paladin spec (Holy / Protection / Retribution) loads it
+and sees the bar; there is no talent-point requirement.
+
+> ℹ️ The rotation priority list itself is tuned for **Retribution**. On Holy or
+> Protection the bar still shows the Ret ability queue, since it is meant as a
+> Ret helper that is merely class-gated rather than spec-gated.
+
 ---
 
 ## ❓ Troubleshooting
 
 **Q: The frame isn't showing up!**
-*   Are you a Paladin?
-*   Are you Retribution spec? (More points in Ret tree than others)
+*   Are you a Paladin? (The addon does nothing at all on other classes.)
 *   Are you alive and not in a vehicle?
 
 **Q: Icons are flickering?**

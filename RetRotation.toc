@@ -4,5 +4,6 @@
 ## Author: Custom
 ## Version: 1.3
 ## X-Category: Paladin
+## X-Class: PALADIN
 
 RetRotation.lua
